@@ -4,6 +4,8 @@
 #include "filesys.h"
 #include "globals.h"
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
 /* Corpo da simulação — preserva lógica original */
 void executar_simulacao(void)
@@ -23,7 +25,7 @@ void executar_simulacao(void)
         processo *p = &proc[i];
         int off = alocar_memoria(p->pid, p->blocos_memoria, p->tipo);
         p->offset_memoria = off;
-        //imprimir_despacho(p);
+        imprimir_despacho(p);
         if (off == -1)
         {
             printf("Process %d => FALHA: memoria insuficiente (%d blocos)\n\n", p->pid, p->blocos_memoria);
