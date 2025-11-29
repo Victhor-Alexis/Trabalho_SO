@@ -23,7 +23,7 @@ void executar_simulacao(void)
         processo *p = &proc[i];
         int off = alocar_memoria(p->pid, p->blocos_memoria, p->tipo);
         p->offset_memoria = off;
-        imprimir_despacho(p);
+        //imprimir_despacho(p);
         if (off == -1)
         {
             printf("Process %d => FALHA: memoria insuficiente (%d blocos)\n\n", p->pid, p->blocos_memoria);
@@ -231,7 +231,21 @@ void executar_simulacao(void)
                     }
                     if (inicio >= 0)
                     {
-                        printf("Sucesso\nO processo %d criou o arquivo %s (blocos %d..%d).\n\n", atual->pid, ops_fs[i].nome, inicio, inicio + blocos - 1);
+                        printf("Sucesso\nO processo %d criou o arquivo %s (blocos ", atual->pid, ops_fs[i].nome);
+
+                        for (int i = 0; i < blocos; ++i) {
+                            printf("%d", inicio + i);
+
+                            if (i < blocos - 2) {
+                                printf(", ");
+                            } 
+                            else if (i == blocos - 2) {
+                                printf(" e ");
+                            }
+                        }
+
+                        printf(").\n\n");
+
                     }
                     else
                     {
