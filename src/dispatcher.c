@@ -79,17 +79,6 @@ void run_dispatcher(Queues *qs, FileSystemInput *fs)
 
         // libera memória após execução
         free_realtime_memory(&mem, p);
-    /*
-     * 1. Prioridade 0 (tempo real) — SEM QUANTUM
-     */
-    while (!queue_is_empty(&qs->real_time_queue))
-    {
-        Process *p = dequeue(&qs->real_time_queue);
-
-        if (p->remaining_cpu_time == 0)
-            p->remaining_cpu_time = p->cpu_time;
-
-        simulate_process_execution(p, p->remaining_cpu_time);
     }
 
     /*
