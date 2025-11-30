@@ -23,7 +23,6 @@ int main(int argc, char *argv[])
     run_dispatcher(&q, fs);
 
     destroy_process_list(plist);
-    destroy_process_list(plist);
     destroy_filesystem_input(fs);
 
     return 0;
