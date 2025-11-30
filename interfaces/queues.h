@@ -48,4 +48,6 @@ void distribute_processes_into_queues(const ProcessList *plist, Queues *q);
 /* Funções de debug */
 void print_queues(const Queues *q);
 
+int queue_is_empty(const ProcessQueue *q);
+
 #endif

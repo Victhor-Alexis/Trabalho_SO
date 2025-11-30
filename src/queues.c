@@ -53,6 +53,11 @@ Process *dequeue(ProcessQueue *queue)
     return p;
 }
 
+int queue_is_empty(const ProcessQueue *q)
+{
+    return q->size == 0;
+}
+
 /* ============================================================
    DISTRIBUIÇÃO DOS PROCESSOS NAS FILAS
    ============================================================ */

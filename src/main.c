@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include "../interfaces/utils.h"
 #include "../interfaces/queues.h"
+#include "../interfaces/dispatcher.h"
 
 int main(int argc, char *argv[])
 {
@@ -18,6 +19,8 @@ int main(int argc, char *argv[])
     Queues q;
     distribute_processes_into_queues(plist, &q);
     print_queues(&q);
+
+    run_dispatcher(&q, fs);
 
     destroy_process_list(plist);
     destroy_process_list(plist);
