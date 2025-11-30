@@ -21,20 +21,31 @@ void dispatch_process(const Process *p, int offset)
     printf("  sata: %d\n", p->sata_disk_id);
 }
 
-void simulate_process_execution(const Process *p)
+void simulate_process_execution(Process *p, int run_time)
 {
-    if (!p)
+    if (!p || run_time <= 0)
         return;
 
-    printf("\nprocess %d =>\n", p->pid);
-    printf("P%d STARTED\n", p->pid);
+    int start_inst = p->cpu_time - p->remaining_cpu_time + 1;
+    int end_inst   = start_inst + run_time - 1;
 
-    for (int i = 1; i <= p->cpu_time; i++)
+    // Se é a primeira execução:
+    if (start_inst == 1)
+        printf("\nP%d STARTED\n", p->pid);
+    else
+        printf("\nP%d RESUMED\n", p->pid);
+
+    for (int i = start_inst; i <= end_inst; i++)
     {
         printf("P%d instruction %d\n", p->pid, i);
     }
 
-    printf("P%d return SIGINT\n", p->pid);
+    p->remaining_cpu_time -= run_time;
+
+    if (p->remaining_cpu_time == 0)
+        printf("P%d return SIGINT\n", p->pid);
+    else
+        printf("P%d INTERRUPTED\n", p->pid);
 }
 
 void run_dispatcher(Queues *qs, FileSystemInput *fs)
@@ -64,19 +75,57 @@ void run_dispatcher(Queues *qs, FileSystemInput *fs)
         dispatch_process(p, offset);
 
         // Executa processo
-        simulate_process_execution(p);
+        simulate_process_execution(p,  p->cpu_time);
 
         // libera memória após execução
         free_realtime_memory(&mem, p);
+    /*
+     * 1. Prioridade 0 (tempo real) — SEM QUANTUM
+     */
+    while (!queue_is_empty(&qs->real_time_queue))
+    {
+        Process *p = dequeue(&qs->real_time_queue);
+
+        if (p->remaining_cpu_time == 0)
+            p->remaining_cpu_time = p->cpu_time;
+
+        simulate_process_execution(p, p->remaining_cpu_time);
     }
 
-    // 2. depois processar as 5 filas de usuário
+    /*
+     * 2. Filas de usuário (1..5) com quantum + realimentação
+     */
     for (int i = 0; i < NUM_USER_QUEUES; i++)
     {
-        while (!queue_is_empty(&qs->user_queues[i]))
+        ProcessQueue *current_queue = &qs->user_queues[i];
+
+        while (!queue_is_empty(current_queue))
         {
-            Process *p = dequeue(&qs->user_queues[i]);
-            simulate_process_execution(p);
+            Process *p = dequeue(current_queue);
+
+            if (p->remaining_cpu_time == 0)
+                p->remaining_cpu_time = p->cpu_time;
+
+            int quantum = get_quantum(p->priority);
+
+            int run_time = p->remaining_cpu_time > quantum
+                ? quantum
+                : p->remaining_cpu_time;
+
+            simulate_process_execution(p, run_time);
+
+            if (p->remaining_cpu_time > 0)
+            {
+                // processo preemptado -> aumenta prioridade para favorecer novos processos
+                if (p->priority > 5)
+                    p->priority++;
+
+                // reinsere na fila correta
+                int new_index = p->priority - 1;
+                enqueue(&qs->user_queues[new_index], p);
+            }
         }
     }
 }
+
+

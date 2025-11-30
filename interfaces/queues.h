@@ -35,8 +35,11 @@ void init_queues(Queues *q);
 /* Insere processo na fila apropriada */
 int enqueue(ProcessQueue *queue, Process *p);
 
-/* Remove processo (não vamos implementar agora, só deixar pronto) */
+/* Remove processo */
 Process *dequeue(ProcessQueue *queue);
+
+/* Pegar o quantum com base na nova prioridade */
+int get_quantum(int priority);
 
 /*
  * Distribui os processos da ProcessList nas filas:

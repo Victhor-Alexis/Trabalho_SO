@@ -10,6 +10,7 @@ typedef struct
     int start_time;    // tempo de inicialização
     int priority;      // prioridade inicial
     int cpu_time;      // tempo de processador
+    int remaining_cpu_time; // tempo restante de processador
     int memory_blocks; // blocos de memória requeridos
     int printer_id;    // número-código da impressora requisitada
     int needs_scanner; // 0 ou 1
