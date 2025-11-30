@@ -4,39 +4,43 @@ CFLAGS = -Wall -Wextra -std=c11 -Iinterfaces
 
 # Diretórios
 SRC_DIR = src
+OBJ_DIR = build
 BIN_DIR = bin
 
 # Nome do executável
 TARGET = $(BIN_DIR)/dispatcher
 
-# Lista de todos os .c dentro de src/
+# Lista de arquivos fonte
 SRC = $(wildcard $(SRC_DIR)/*.c)
 
-# Objetos correspondentes
-OBJ = $(SRC:.c=.o)
+# Para cada src/foo.c gera build/foo.o
+OBJ = $(patsubst $(SRC_DIR)/%.c, $(OBJ_DIR)/%.o, $(SRC))
 
-# Regra principal
-all: $(BIN_DIR) $(TARGET)
+# Regra padrão
+all: $(OBJ_DIR) $(BIN_DIR) $(TARGET)
+
+# Cria pastas se não existirem
+$(OBJ_DIR):
+	mkdir -p $(OBJ_DIR)
 
 $(BIN_DIR):
 	mkdir -p $(BIN_DIR)
 
-# Link final
+# Regras para gerar o binário final
 $(TARGET): $(OBJ)
 	$(CC) $(CFLAGS) $^ -o $@
 
-# Compilar cada arquivo .c em .o
-$(SRC_DIR)/%.o: $(SRC_DIR)/%.c
+# Regra para compilar .c -> .o
+$(OBJ_DIR)/%.o: $(SRC_DIR)/%.c
 	$(CC) $(CFLAGS) -c $< -o $@
 
-# Limpar objetos e binário
+# Limpezas
 clean:
-	rm -f $(SRC_DIR)/*.o
-	rm -f $(TARGET)
+	rm -f $(OBJ_DIR)/*.o
 
 cleanall:
+	rm -rf $(OBJ_DIR)
 	rm -rf $(BIN_DIR)
-	rm -f $(SRC_DIR)/*.o
 
 run: all
 	./$(TARGET) processes.txt files.txt
