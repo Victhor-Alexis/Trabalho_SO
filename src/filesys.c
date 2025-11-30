@@ -2,7 +2,14 @@
 #include "globals.h"
 #include "utils.h"
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
+
+void inicializa_arquivos_no_disco(void)
+{
+    for (int i = 0; i < MAX_DISK_FILES; i++)
+        arquivos[i].usado = false;
+}
 
 /* Sistema de arquivos: alocacao contigua first-fit */
 int criar_arquivo(char *nome, int blocos, int dono)
@@ -71,59 +78,81 @@ int deletar_arquivo(char *nome, int pid, int is_rt)
     return 1; /* nao encontrado */
 }
 
+void preenche_informacoes_arquivo(char *nome, int inicio, int blocos)
+{
+    // First fit
+    for (int i = 0; i < MAX_DISK_FILES; i++)
+    {
+        if (!arquivos[i].usado)
+        {
+            arquivos[i].usado = true;
+            strncpy(arquivos[i].nome, trim(nome), 1);
+            arquivos[i].nome[MAX_FILENAME - 1] = '\0';
+            arquivos[i].inicio = inicio;
+            arquivos[i].blocos = blocos;
+            arquivos[i].dono = -1;
+            break;
+        }
+    }
+}
+
 /* Leitura do arquivo files.txt */
 int ler_files(const char *nome_arquivo)
 {
+    inicializa_arquivos_no_disco();
+
     FILE *f = fopen(nome_arquivo, "r");
     if (!f)
     {
         perror("Erro ao abrir files.txt");
         return 0;
     }
+
+    // Le a primeira linha para definir a quantidade de blocos do disco
     char linha[MAX_LINE];
     if (!fgets(linha, sizeof(linha), f))
     {
         fclose(f);
         return 0;
     }
+
     discos_total = atoi(trim(linha));
+
+    // duvida: Ta certo isso? "DISK_MAX_BLOCKS" nao deveria ser o proprio "discos_total"
     if (discos_total <= 0 || discos_total > DISK_MAX_BLOCKS)
     {
         fprintf(stderr, "Numero invalido de blocos no disco: %d\n", discos_total);
         fclose(f);
         return 0;
     }
+
+    // Le a segunda linha para definir a quantidade de blocos usados no disco
     if (!fgets(linha, sizeof(linha), f))
     {
         fclose(f);
         return 0;
     }
-    int nseg = atoi(trim(linha));
-    for (int i = 0; i < MAX_DISK_FILES; i++)
-        arquivos[i].usado = false;
-    for (int i = 0; i < nseg; i++)
+    int segmentos_ocupados = atoi(trim(linha));
+
+    // Le as proximas n (segmentos ocupados) linhas
+    // Para cada segmento ocupado, le as informacoes do aqruivo presente no segmento
+    for (int i = 0; i < segmentos_ocupados; i++)
     {
         if (!fgets(linha, sizeof(linha), f))
             break;
-        char nomef[8];
+        char nome_do_arquivo[1];
         int inicio, blocos;
-        if (sscanf(linha, " %[^,] , %d , %d", nomef, &inicio, &blocos) >= 3)
+        if (sscanf(linha, " %[^,] , %d , %d", nome_do_arquivo, &inicio, &blocos) == 3)
         {
-            for (int j = 0; j < MAX_DISK_FILES; j++)
-            {
-                if (!arquivos[j].usado)
-                {
-                    arquivos[j].usado = true;
-                    strncpy(arquivos[j].nome, trim(nomef), MAX_FILENAME - 1);
-                    arquivos[j].nome[MAX_FILENAME - 1] = '\0';
-                    arquivos[j].inicio = inicio;
-                    arquivos[j].blocos = blocos;
-                    arquivos[j].dono = -1;
-                    break;
-                }
-            }
+            preenche_informacoes_arquivo(nome_do_arquivo, inicio, blocos);
+        }
+        else
+        {
+            printf("FALHA: parametros insuficientes para o aqrquivo %s", nome_do_arquivo);
         }
     }
+
+    // Le o restante das linhas, que representam opercoes a serem realizadas pelo sistema de arquivos
     num_ops_fs = 0;
     while (fgets(linha, sizeof(linha), f))
     {

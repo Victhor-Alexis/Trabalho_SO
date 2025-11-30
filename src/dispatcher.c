@@ -22,7 +22,7 @@ void executar_simulacao(void)
 
     for (int i = 0; i < num_processos; i++)
     {
-        processo *p = &proc[i];
+        processo *p = &processos_prontos[i];
         int off = alocar_memoria(p->pid, p->blocos_memoria, p->tipo);
         p->offset_memoria = off;
         imprimir_despacho(p);
@@ -47,7 +47,7 @@ void executar_simulacao(void)
 
     int ativos = 0;
     for (int i = 0; i < num_processos; i++)
-        if (!proc[i].finalizado)
+        if (!processos_prontos[i].finalizado)
             ativos++;
 
     int tempo_global = 0;
@@ -78,22 +78,22 @@ void executar_simulacao(void)
             tempo_global++;
             for (int i = 0; i < num_processos; i++)
             {
-                if (!proc[i].finalizado)
-                    proc[i].aging++;
-                if (!proc[i].finalizado && proc[i].tipo == USUARIO && proc[i].aging >= 10)
+                if (!processos_prontos[i].finalizado)
+                    processos_prontos[i].aging++;
+                if (!processos_prontos[i].finalizado && processos_prontos[i].tipo == USUARIO && processos_prontos[i].aging >= 10)
                 {
-                    if (proc[i].prioridade > 1)
+                    if (processos_prontos[i].prioridade > 1)
                     {
-                        proc[i].prioridade -= 1;
-                        proc[i].aging = 0;
-                        fila_push(proc[i].prioridade, proc[i].pid);
+                        processos_prontos[i].prioridade -= 1;
+                        processos_prontos[i].aging = 0;
+                        fila_push(processos_prontos[i].prioridade, processos_prontos[i].pid);
                     }
                 }
             }
             continue;
         }
 
-        processo *atual = &proc[pid_executar];
+        processo *atual = &processos_prontos[pid_executar];
         if (atual->finalizado)
         {
             ativos--;
@@ -137,8 +137,8 @@ void executar_simulacao(void)
             else
                 fila_push(atual->prioridade, atual->pid);
             for (int i = 0; i < num_processos; i++)
-                if (!proc[i].finalizado && proc[i].pid != atual->pid)
-                    proc[i].aging++;
+                if (!processos_prontos[i].finalizado && processos_prontos[i].pid != atual->pid)
+                    processos_prontos[i].aging++;
             tempo_global++;
             continue;
         }
@@ -235,19 +235,21 @@ void executar_simulacao(void)
                     {
                         printf("Sucesso\nO processo %d criou o arquivo %s (blocos ", atual->pid, ops_fs[i].nome);
 
-                        for (int i = 0; i < blocos; ++i) {
+                        for (int i = 0; i < blocos; ++i)
+                        {
                             printf("%d", inicio + i);
 
-                            if (i < blocos - 2) {
+                            if (i < blocos - 2)
+                            {
                                 printf(", ");
-                            } 
-                            else if (i == blocos - 2) {
+                            }
+                            else if (i == blocos - 2)
+                            {
                                 printf(" e ");
                             }
                         }
 
                         printf(").\n\n");
-
                     }
                     else
                     {
@@ -287,16 +289,16 @@ void executar_simulacao(void)
         /* aging: incrementa espera e promove se necessario */
         for (int j = 0; j < num_processos; j++)
         {
-            if (!proc[j].finalizado && proc[j].pid != atual->pid)
+            if (!processos_prontos[j].finalizado && processos_prontos[j].pid != atual->pid)
             {
-                proc[j].aging++;
-                if (proc[j].tipo == USUARIO && proc[j].aging >= 20)
+                processos_prontos[j].aging++;
+                if (processos_prontos[j].tipo == USUARIO && processos_prontos[j].aging >= 20)
                 {
-                    if (proc[j].prioridade > 1)
+                    if (processos_prontos[j].prioridade > 1)
                     {
-                        proc[j].prioridade -= 1;
-                        proc[j].aging = 0;
-                        fila_push(proc[j].prioridade, proc[j].pid);
+                        processos_prontos[j].prioridade -= 1;
+                        processos_prontos[j].aging = 0;
+                        fila_push(processos_prontos[j].prioridade, processos_prontos[j].pid);
                     }
                 }
             }

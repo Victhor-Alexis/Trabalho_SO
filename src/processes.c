@@ -45,20 +45,25 @@ int ler_processes(const char *nome_arquivo)
         perror("Erro ao abrir processes.txt");
         return 0;
     }
+
     char linha[MAX_LINE];
     int pid = 0;
+
     while (fgets(linha, sizeof(linha), f))
     {
         char *s = trim(linha);
         if (*s == '\0' || *s == '#')
             continue;
+
         int t_init, prioridade, tproc, blocos, impressora, scanner, modem, sata;
         int lidos = sscanf(s, " %d , %d , %d , %d , %d , %d , %d , %d", &t_init, &prioridade, &tproc, &blocos, &impressora, &scanner, &modem, &sata);
+
         if (lidos < 8)
             continue;
         if (pid >= MAX_PROCS)
             break;
-        processo *p = &proc[pid];
+
+        processo *p = &processos_prontos[pid];
         p->pid = pid;
         p->tempo_inicio = t_init;
         p->prioridade = prioridade;
@@ -75,6 +80,7 @@ int ler_processes(const char *nome_arquivo)
         p->tipo = (prioridade == 0 ? TEMPO_REAL : USUARIO);
         pid++;
     }
+
     num_processos = pid;
     fclose(f);
     return 1;

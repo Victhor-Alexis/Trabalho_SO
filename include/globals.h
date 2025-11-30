@@ -4,7 +4,7 @@
 #include "types.h"
 
 /* Variaveis globais definidas em src/global.c (mas aqui apenas declaradas) */
-extern processo proc[MAX_PROCS];
+extern processo processos_prontos[MAX_PROCS];
 extern int num_processos;
 
 extern int mapa_memoria[MEM_TOTAL];

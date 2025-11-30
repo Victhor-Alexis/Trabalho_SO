@@ -3,6 +3,7 @@
 #include "globals.h"
 #include "processes.h"
 #include "filesys.h"
+#include "utils.h"
 
 /*
     Rode make no diretório do projeto.
@@ -18,16 +19,20 @@ int main(int argc, char **argv)
         printf("Uso: %s processes.txt files.txt\n", argv[0]);
         return 1;
     }
-    /* inicializacoes basicas de globais */
-    for (int i = 0; i < MEM_TOTAL; i++)
-        mapa_memoria[i] = -1;
-    for (int i = 0; i < MAX_DISK_FILES; i++)
-        arquivos[i].usado = false;
 
-    if (!ler_processes(argv[1]))
-        return 1;
-    if (!ler_files(argv[2]))
-        return 1;
+    inicializar_basicas_globais();
+
+    if (ler_processes(argv[1]) != 1)
+    {
+        printf("Erro ao ler processos\n");
+        return 0;
+    }
+
+    if (ler_files(argv[2]) != 1)
+    {
+        printf("Erro ao ler arquivos\n");
+        return 0;
+    }
 
     executar_simulacao();
     return 0;

@@ -1,7 +1,7 @@
 /* definicoes das variaveis globais */
 #include "../include/types.h"
 
-processo proc[MAX_PROCS];
+processo processos_prontos[MAX_PROCS];
 int num_processos = 0;
 
 int mapa_memoria[MEM_TOTAL];
