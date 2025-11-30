@@ -1,1 +1,16 @@
-dispatcher
+# Compilados e objetos
+*.o
+*.a
+*.so
+*.out
+*.exe
+
+# Pasta de binários
+bin/
+
+# VSCode
+.vscode/
+
+# Arquivos específicos
+processes.txt
+files.txt

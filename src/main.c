@@ -1,18 +1,7 @@
 #include <stdio.h>
-#include <stdlib.h>
-#include "globals.h"
-#include "processes.h"
-#include "filesys.h"
-#include "utils.h"
+#include "../interfaces/utils.h"
 
-/*
-    Rode make no diretório do projeto.
-    Execute ./dispatcher processes.txt files.txt.
-*/
-
-void executar_simulacao(void);
-
-int main(int argc, char **argv)
+int main(int argc, char *argv[])
 {
     if (argc < 3)
     {
@@ -20,20 +9,14 @@ int main(int argc, char **argv)
         return 1;
     }
 
-    inicializar_basicas_globais();
+    ProcessList *plist = load_processes_from_file(argv[1]);
+    FileSystemInput *fs = load_filesystem_from_file(argv[2]);
 
-    if (ler_processes(argv[1]) != 1)
-    {
-        printf("Erro ao ler processos\n");
-        return 0;
-    }
+    print_process_list(plist);
+    print_filesystem_input(fs);
 
-    if (ler_files(argv[2]) != 1)
-    {
-        printf("Erro ao ler arquivos\n");
-        return 0;
-    }
+    destroy_process_list(plist);
+    destroy_filesystem_input(fs);
 
-    executar_simulacao();
     return 0;
 }
