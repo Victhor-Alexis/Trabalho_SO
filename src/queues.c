@@ -58,6 +58,53 @@ int queue_is_empty(const ProcessQueue *q)
     return q->size == 0;
 }
 
+int all_user_queues_empty(const Queues *q)
+{
+    // verifica se todas as filas de usuário estão vazias
+    for (int i = 0; i < NUM_USER_QUEUES; i++)
+    {
+        if (!queue_is_empty(&q->user_queues[i]))
+            return 0;
+    }
+    return 1;
+}
+
+/*
+ * Aging simples:
+ * - a cada chamada, promove um processo da frente de cada fila de menor prioridade
+ *   (prioridades mais baixas, numericamente maiores) para a fila imediatamente superior.
+ */
+void apply_aging(Queues *q)
+{
+    // percorre das filas de menor prioridade para as mais altas
+    for (int i = NUM_USER_QUEUES - 1; i > 0; i--)
+    {
+        ProcessQueue *from = &q->user_queues[i];
+
+        if (!queue_is_empty(from))
+        {
+            Process *p = dequeue(from);
+
+            int old = p->priority;
+
+            if (p->priority > 1)
+                p->priority--; // "aumenta" prioridade (valor numérico menor)
+
+            log_aging(p, old);
+
+            int dest_index = p->priority - 1;
+            enqueue(&q->user_queues[dest_index], p);
+        }
+    }
+}
+
+void log_aging(const Process *p, int old_priority)
+{
+    // log muito limpo sobre aging
+    printf("[AGING] PID %d priority %d -> %d\n",
+           p->pid, old_priority, p->priority);
+}
+
 /* ============================================================
    DISTRIBUIÇÃO DOS PROCESSOS NAS FILAS
    ============================================================ */

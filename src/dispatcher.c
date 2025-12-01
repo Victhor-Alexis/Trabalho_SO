@@ -36,46 +36,130 @@ void simulate_process_execution(const Process *p)
     printf("P%d return SIGINT\n", p->pid);
 }
 
+// retorna o quantum associado à prioridade do processo de usuário
+static int get_quantum_for_priority(int priority)
+{
+    // conforme especificação:
+    // 1 -> 6, 2 -> 5, 3 -> 4, 4 -> 3, 5 -> 2
+    switch (priority)
+    {
+    case 1:
+        return 6;
+    case 2:
+        return 5;
+    case 3:
+        return 4;
+    case 4:
+        return 3;
+    case 5:
+        return 2;
+    default:
+        return 2; // fallback seguro
+    }
+}
+
+/*
+ * Retorna o índice da fila de usuário de maior prioridade que não está vazia.
+ * (0 = prioridade 1, 1 = prioridade 2, ..., 4 = prioridade 5)
+ * Retorna -1 se todas estiverem vazias.
+ */
+static int get_highest_nonempty_user_queue(const Queues *qs)
+{
+    for (int i = 0; i < NUM_USER_QUEUES; i++)
+    {
+        if (!queue_is_empty(&qs->user_queues[i]))
+            return i;
+    }
+    return -1;
+}
+
 void run_dispatcher(Queues *qs, FileSystemInput *fs)
 {
     (void)fs;
 
     Memory mem;
-    init_memory(&mem); // inicializar memória
+    init_memory(&mem);
 
-    // 1. processar primeiro a fila de tempo real
+    int current_time = 0; // tempo global
+    int finished_processes = 0;
+
+    /* ============================================================
+       1. Executar processos de tempo real primeiro
+       ============================================================ */
     while (!queue_is_empty(&qs->real_time_queue))
     {
         Process *p = dequeue(&qs->real_time_queue);
+
+        if (p->start_time > current_time)
+            current_time = p->start_time;
+
         int offset = allocate_realtime_memory(&mem, p);
 
         if (offset == -1)
         {
-            // não há espaço → processo volta para fila TR
             enqueue(&qs->real_time_queue, p);
             continue;
         }
 
-        // Printa a alocacao
         printf("\n[ALLOCATION] PID %d allocated at offset %d", p->pid, offset);
 
-        // imprime o bloco do dispatcher ANTES da execução
         dispatch_process(p, offset);
-
-        // Executa processo
         simulate_process_execution(p);
 
-        // libera memória após execução
         free_realtime_memory(&mem, p);
+        finished_processes++;
     }
 
-    // 2. depois processar as 5 filas de usuário
-    for (int i = 0; i < NUM_USER_QUEUES; i++)
+    /* ============================================================
+       2. Agora processos de usuário com preempção + aging
+       ============================================================ */
+
+    while (!all_user_queues_empty(qs))
     {
-        while (!queue_is_empty(&qs->user_queues[i]))
+        int q_index = get_highest_nonempty_user_queue(qs);
+        if (q_index < 0)
+            break;
+
+        Process *p = dequeue(&qs->user_queues[q_index]);
+
+        /* Respeitar o tempo de start do processo */
+        if (p->start_time > current_time)
+            current_time = p->start_time;
+
+        /* Por enquanto, sem memória do usuário */
+        int offset = 64; // placeholder até implementarmos user memory
+
+        /* Exibir dados do processo antes da execução */
+        dispatch_process(p, offset);
+
+        int quantum = get_quantum_for_priority(p->priority);
+
+        if (p->cpu_time > quantum)
         {
-            Process *p = dequeue(&qs->user_queues[i]);
-            simulate_process_execution(p);
+            /* Processo não terminou -> preemptado */
+            p->cpu_time -= quantum;
+
+            int old = p->priority;
+
+            if (p->priority < 5)
+                p->priority++;
+
+            int new_index = p->priority - 1;
+            enqueue(&qs->user_queues[new_index], p);
+
+            printf("[PREEMPT] PID %d did not finish. Priority %d -> %d, remaining=%d\n",
+                   p->pid, old, p->priority, p->cpu_time);
         }
+        else
+        {
+            /* Processo finaliza aqui */
+            simulate_process_execution(p);
+            finished_processes++;
+        }
+
+        /* Aging de processos esperando */
+        apply_aging(qs);
+
+        current_time++;
     }
 }

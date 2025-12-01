@@ -48,6 +48,14 @@ void distribute_processes_into_queues(const ProcessList *plist, Queues *q);
 /* Funções de debug */
 void print_queues(const Queues *q);
 
+void log_aging(const Process *p, int old_priority);
+
 int queue_is_empty(const ProcessQueue *q);
+
+/* Retorna 1 se todas as filas de usuário estiverem vazias */
+int all_user_queues_empty(const Queues *q);
+
+/* Aplica aging: promove alguns processos das filas de menor prioridade */
+void apply_aging(Queues *q);
 
 #endif
