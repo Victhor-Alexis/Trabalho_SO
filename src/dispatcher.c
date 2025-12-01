@@ -36,6 +36,40 @@ void simulate_process_execution(const Process *p)
     printf("P%d return SIGINT\n", p->pid);
 }
 
+// imprime a execução parcial de um processo de usuário (quantum)
+void simulate_process_slice(Process *p, int quantum)
+{
+    if (!p)
+        return;
+
+    printf("\nprocess %d =>\n", p->pid);
+
+    if (p->executed_instructions == 0)
+        printf("P%d STARTED\n", p->pid);
+    else
+        printf("P%d CONTINUED\n", p->pid);
+
+    int instructions_to_run = quantum;
+
+    if (p->cpu_time <= quantum)
+        instructions_to_run = p->cpu_time;
+
+    // execute instructions
+    for (int i = 0; i < instructions_to_run; i++)
+    {
+        int instr_num = p->executed_instructions + 1;
+        printf("P%d instruction %d\n", p->pid, instr_num);
+        p->executed_instructions++;
+    }
+
+    // if finished
+    if (p->cpu_time <= quantum)
+    {
+        printf("P%d return SIGINT\n", p->pid);
+        p->cpu_time = 0; // <--- THIS FIXES THE INFINITE LOOP
+    }
+}
+
 // retorna o quantum associado à prioridade do processo de usuário
 static int get_quantum_for_priority(int priority)
 {
@@ -131,16 +165,18 @@ void run_dispatcher(Queues *qs, FileSystemInput *fs)
 
         /* Exibir dados do processo antes da execução */
         dispatch_process(p, offset);
-
         int quantum = get_quantum_for_priority(p->priority);
 
         if (p->cpu_time > quantum)
         {
-            /* Processo não terminou -> preemptado */
+            /* Executa somente um slice */
+            simulate_process_slice(p, quantum);
+
+            /* Reduz tempo restante */
             p->cpu_time -= quantum;
 
+            /* Rebaixa prioridade */
             int old = p->priority;
-
             if (p->priority < 5)
                 p->priority++;
 
@@ -152,8 +188,9 @@ void run_dispatcher(Queues *qs, FileSystemInput *fs)
         }
         else
         {
-            /* Processo finaliza aqui */
-            simulate_process_execution(p);
+            /* Executa apenas as instruções restantes e retorna SIGINT */
+            simulate_process_slice(p, quantum);
+
             finished_processes++;
         }
 

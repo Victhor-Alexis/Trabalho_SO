@@ -58,6 +58,7 @@ ProcessList *load_processes_from_file(const char *path)
         p->start_time = st;
         p->priority = pr;
         p->cpu_time = cpu;
+        p->executed_instructions = 0;
         p->memory_blocks = mem;
         p->printer_id = prn;
         p->needs_scanner = scn;

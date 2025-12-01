@@ -21,7 +21,10 @@ typedef struct
  */
 void run_dispatcher(Queues *qs, FileSystemInput *fs);
 
-/* Apenas para esta fase: simula a execução do processo */
+/* Simula a execução do processo real time */
 void simulate_process_execution(const Process *p);
+
+/* Simula a execução do processo de usuario */
+void simulate_process_slice(Process *p, int quantum);
 
 #endif
