@@ -109,8 +109,6 @@ static int get_highest_nonempty_user_queue(const Queues *qs)
 
 void run_dispatcher(Queues *qs, FileSystemInput *fs)
 {
-    (void)fs;
-
     Memory mem;
     init_memory(&mem);
 

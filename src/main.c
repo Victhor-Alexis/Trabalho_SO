@@ -22,6 +22,8 @@ int main(int argc, char *argv[])
 
     run_dispatcher(&q, fs);
 
+    fs_run(fs, plist);
+
     destroy_process_list(plist);
     destroy_filesystem_input(fs);
 
