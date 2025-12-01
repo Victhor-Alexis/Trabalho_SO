@@ -32,12 +32,14 @@ void run_dispatcher(Queues *qs)
     /* Processos tempo real */
     while (!queue_is_empty(&qs->real_time_queue))
     {
+        // chama uma funcao que desinfilera todos que estiverem "prontos"
         Process *p = dequeue(&qs->real_time_queue);
 
         int offset = allocate_realtime_memory(&mem, p);
 
         if (offset == -1)
         {
+            // mata esse processo porque nunca vair rodar
             enqueue(&qs->real_time_queue, p);
             continue;
         }

@@ -85,13 +85,12 @@ int fs_create(FileSystemRuntime *rt, char name, int blocks, int pid, int op_inde
         rt->blocks[start + i] = name;
 
     printf("Operacao %d => Sucesso\n", op_index + 1);
-    printf("O processo %d criou o arquivo %c (blocos %d ate %d).\n",
-           pid, name, start, start + blocks - 1);
+    printf("O processo %d criou o arquivo %c (blocos %d ate %d).\n", pid, name, start, start + blocks - 1);
 
     return 0;
 }
 
-int fs_delete(FileSystemRuntime *rt, char name, int pid, int op_index)
+int fs_delete(FileSystemRuntime *rt, ProcessList *plist, char name, int pid, int op_index)
 {
     // procurar arquivo
     FsFile *f = NULL;
@@ -110,12 +109,13 @@ int fs_delete(FileSystemRuntime *rt, char name, int pid, int op_index)
         return -1;
     }
 
-    // checar permissão
-    if (!(pid == 0 || pid == f->owner_pid))
+    Process *proc = &plist->items[pid];
+    int is_real_time = (proc->priority == 0);
+
+    if (!(is_real_time || pid == f->owner_pid))
     {
         printf("Operacao %d => Falha\n", op_index + 1);
-        printf("O processo %d nao pode deletar o arquivo %c (permissao negada).\n",
-               pid, name);
+        printf("O processo %d nao pode deletar o arquivo %c (permissao negada).\n", pid, name);
         return -1;
     }
 
@@ -150,6 +150,7 @@ void fs_run(FileSystemInput *input, ProcessList *plist)
 
     printf("\nSistema de arquivos =>\n");
 
+    // Percorre todas as operações de sistema de arquivos lidas do arquivo files.txt
     for (int i = 0; i < input->num_operations; i++)
     {
         FsOperation *op = &input->operations[i];
@@ -166,7 +167,7 @@ void fs_run(FileSystemInput *input, ProcessList *plist)
         if (op->op_code == 0)
             fs_create(&rt, op->name, op->num_blocks, pid, i);
         else
-            fs_delete(&rt, op->name, pid, i);
+            fs_delete(&rt, plist, op->name, pid, i);
     }
 
     fs_print_map(&rt);

@@ -51,7 +51,7 @@ int fs_find_free_space_first_fit(FileSystemRuntime *rt, int size);
 
 int fs_create(FileSystemRuntime *rt, char name, int blocks, int pid, int op_index);
 
-int fs_delete(FileSystemRuntime *rt, char name, int pid, int op_index);
+int fs_delete(FileSystemRuntime *rt, ProcessList *plist, char name, int pid, int op_index);
 
 void fs_print_map(FileSystemRuntime *rt);
 
