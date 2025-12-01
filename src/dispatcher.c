@@ -107,7 +107,7 @@ static int get_highest_nonempty_user_queue(const Queues *qs)
     return -1;
 }
 
-void run_dispatcher(Queues *qs, FileSystemInput *fs)
+void run_dispatcher(Queues *qs)
 {
     Memory mem;
     init_memory(&mem);
@@ -145,6 +145,8 @@ void run_dispatcher(Queues *qs, FileSystemInput *fs)
     /* ============================================================
        2. Agora processos de usuário com preempção + aging
        ============================================================ */
+    int aging_counter = 0;
+    int AGING_INTERVAL = 3;
 
     while (!all_user_queues_empty(qs))
     {
@@ -193,7 +195,12 @@ void run_dispatcher(Queues *qs, FileSystemInput *fs)
         }
 
         /* Aging de processos esperando */
-        apply_aging(qs);
+        aging_counter++;
+        if (aging_counter >= AGING_INTERVAL)
+        {
+            apply_aging(qs);
+            aging_counter = 0; // resetar o contador
+        }
 
         current_time++;
     }

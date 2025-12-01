@@ -71,8 +71,7 @@ int all_user_queues_empty(const Queues *q)
 
 /*
  * Aging simples:
- * - a cada chamada, promove um processo da frente de cada fila de menor prioridade
- *   (prioridades mais baixas, numericamente maiores) para a fila imediatamente superior.
+ * A cada chamada, promove um processo da frente de cada fila de menor prioridade (ajuste variavel)
  */
 void apply_aging(Queues *q)
 {
