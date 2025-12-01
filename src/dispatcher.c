@@ -2,6 +2,7 @@
 #include "../interfaces/dispatcher.h"
 #include "../interfaces/queues.h"
 #include "../interfaces/memory.h"
+#include "../interfaces/process.h"
 
 void dispatch_process(const Process *p, int offset)
 {
@@ -20,93 +21,6 @@ void dispatch_process(const Process *p, int offset)
     printf("  sata: %d\n", p->sata_disk_id);
 }
 
-void simulate_process_execution(const Process *p)
-{
-    if (!p)
-        return;
-
-    printf("\nprocess %d =>\n", p->pid);
-    printf("P%d STARTED\n", p->pid);
-
-    for (int i = 1; i <= p->cpu_time; i++)
-    {
-        printf("P%d instruction %d\n", p->pid, i);
-    }
-
-    printf("P%d return SIGINT\n", p->pid);
-}
-
-// imprime a execução parcial de um processo de usuário (quantum)
-void simulate_process_slice(Process *p, int quantum)
-{
-    if (!p)
-        return;
-
-    printf("\nprocess %d =>\n", p->pid);
-
-    if (p->executed_instructions == 0)
-        printf("P%d STARTED\n", p->pid);
-    else
-        printf("P%d CONTINUED\n", p->pid);
-
-    int instructions_to_run = quantum;
-
-    if (p->cpu_time <= quantum)
-        instructions_to_run = p->cpu_time;
-
-    // execute instructions
-    for (int i = 0; i < instructions_to_run; i++)
-    {
-        int instr_num = p->executed_instructions + 1;
-        printf("P%d instruction %d\n", p->pid, instr_num);
-        p->executed_instructions++;
-    }
-
-    // if finished
-    if (p->cpu_time <= quantum)
-    {
-        printf("P%d return SIGINT\n", p->pid);
-        p->cpu_time = 0; // <--- THIS FIXES THE INFINITE LOOP
-    }
-}
-
-// retorna o quantum associado à prioridade do processo de usuário
-static int get_quantum_for_priority(int priority)
-{
-    // conforme especificação:
-    // 1 -> 6, 2 -> 5, 3 -> 4, 4 -> 3, 5 -> 2
-    switch (priority)
-    {
-    case 1:
-        return 6;
-    case 2:
-        return 5;
-    case 3:
-        return 4;
-    case 4:
-        return 3;
-    case 5:
-        return 2;
-    default:
-        return 2; // fallback seguro
-    }
-}
-
-/*
- * Retorna o índice da fila de usuário de maior prioridade que não está vazia.
- * (0 = prioridade 1, 1 = prioridade 2, ..., 4 = prioridade 5)
- * Retorna -1 se todas estiverem vazias.
- */
-static int get_highest_nonempty_user_queue(const Queues *qs)
-{
-    for (int i = 0; i < NUM_USER_QUEUES; i++)
-    {
-        if (!queue_is_empty(&qs->user_queues[i]))
-            return i;
-    }
-    return -1;
-}
-
 void run_dispatcher(Queues *qs)
 {
     Memory mem;
@@ -115,15 +29,10 @@ void run_dispatcher(Queues *qs)
     int current_time = 0; // tempo global
     int finished_processes = 0;
 
-    /* ============================================================
-       1. Executar processos de tempo real primeiro
-       ============================================================ */
+    /* Processos tempo real */
     while (!queue_is_empty(&qs->real_time_queue))
     {
         Process *p = dequeue(&qs->real_time_queue);
-
-        if (p->start_time > current_time)
-            current_time = p->start_time;
 
         int offset = allocate_realtime_memory(&mem, p);
 
@@ -142,9 +51,7 @@ void run_dispatcher(Queues *qs)
         finished_processes++;
     }
 
-    /* ============================================================
-       2. Agora processos de usuário com preempção + aging
-       ============================================================ */
+    /* Processos usuario */
     int aging_counter = 0;
     int AGING_INTERVAL = 3;
 
@@ -156,15 +63,34 @@ void run_dispatcher(Queues *qs)
 
         Process *p = dequeue(&qs->user_queues[q_index]);
 
-        /* Respeitar o tempo de start do processo */
-        if (p->start_time > current_time)
-            current_time = p->start_time;
+        if (!p->in_memory)
+        {
+            int offset = allocate_user_memory(&mem, p);
 
-        /* Por enquanto, sem memória do usuário */
-        int offset = 64; // placeholder até implementarmos user memory
+            if (offset == -1)
+            {
+                printf("\n[USER MEM] PID %d cannot be allocated (no space). Waiting...\n", p->pid);
+                enqueue(&qs->user_queues[q_index], p);
+
+                // Aging também ocorre aqui
+                aging_counter++;
+                if (aging_counter >= AGING_INTERVAL)
+                {
+                    apply_aging(qs);
+                    aging_counter = 0;
+                }
+
+                current_time++;
+                continue;
+            }
+
+            p->in_memory = 1;
+            p->mem_offset = offset;
+            printf("\n[ALLOCATION USER] PID %d allocated at offset %d\n", p->pid, offset);
+        }
 
         /* Exibir dados do processo antes da execução */
-        dispatch_process(p, offset);
+        dispatch_process(p, p->mem_offset);
         int quantum = get_quantum_for_priority(p->priority);
 
         if (p->cpu_time > quantum)
@@ -190,6 +116,11 @@ void run_dispatcher(Queues *qs)
         {
             /* Executa apenas as instruções restantes e retorna SIGINT */
             simulate_process_slice(p, quantum);
+
+            /* Processo terminou: liberar memória de usuário */
+            free_user_memory(&mem, p);
+            p->in_memory = 0;
+            p->mem_offset = -1;
 
             finished_processes++;
         }

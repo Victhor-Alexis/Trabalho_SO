@@ -20,7 +20,7 @@ int main(int argc, char *argv[])
     distribute_processes_into_queues(plist, &q);
     print_queues(&q);
 
-    run_dispatcher(&q, fs);
+    run_dispatcher(&q);
 
     fs_run(fs, plist);
 

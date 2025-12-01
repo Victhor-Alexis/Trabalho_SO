@@ -15,16 +15,12 @@ typedef struct
     int next_mem_offset; // alocação sequencial simples por enquanto
 } DispatcherState;
 
+void dispatch_process(const Process *p, int offset);
+
 /*
  * Função principal: recebe a lista de processos e o sistema de arquivos
  * e simula (por enquanto) a criação/execução básica.
  */
 void run_dispatcher(Queues *qs);
-
-/* Simula a execução do processo real time */
-void simulate_process_execution(const Process *p);
-
-/* Simula a execução do processo de usuario */
-void simulate_process_slice(Process *p, int quantum);
 
 #endif

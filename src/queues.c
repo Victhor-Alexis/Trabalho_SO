@@ -69,6 +69,43 @@ int all_user_queues_empty(const Queues *q)
     return 1;
 }
 
+// retorna o quantum associado à prioridade do processo de usuário
+int get_quantum_for_priority(int priority)
+{
+    // conforme especificação:
+    // 1 -> 6, 2 -> 5, 3 -> 4, 4 -> 3, 5 -> 2
+    switch (priority)
+    {
+    case 1:
+        return 6;
+    case 2:
+        return 5;
+    case 3:
+        return 4;
+    case 4:
+        return 3;
+    case 5:
+        return 2;
+    default:
+        return 2; // fallback seguro
+    }
+}
+
+/*
+ * Retorna o índice da fila de usuário de maior prioridade que não está vazia.
+ * (0 = prioridade 1, 1 = prioridade 2, ..., 4 = prioridade 5)
+ * Retorna -1 se todas estiverem vazias.
+ */
+int get_highest_nonempty_user_queue(const Queues *qs)
+{
+    for (int i = 0; i < NUM_USER_QUEUES; i++)
+    {
+        if (!queue_is_empty(&qs->user_queues[i]))
+            return i;
+    }
+    return -1;
+}
+
 /*
  * Aging simples:
  * A cada chamada, promove um processo da frente de cada fila de menor prioridade (ajuste variavel)

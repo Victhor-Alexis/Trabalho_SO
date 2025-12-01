@@ -60,6 +60,8 @@ ProcessList *load_processes_from_file(const char *path)
         p->cpu_time = cpu;
         p->executed_instructions = 0;
         p->memory_blocks = mem;
+        p->in_memory = 0;
+        p->mem_offset = -1;
         p->printer_id = prn;
         p->needs_scanner = scn;
         p->needs_modem = mod;
@@ -104,9 +106,7 @@ void print_process_list(const ProcessList *list)
         print_process(&list->items[i]);
 }
 
-/* ============================================================
-   FUNÇÕES DO SISTEMA DE ARQUIVOS
-   ============================================================ */
+/* Ler files.txt */
 
 FileSystemInput *load_filesystem_from_file(const char *path)
 {

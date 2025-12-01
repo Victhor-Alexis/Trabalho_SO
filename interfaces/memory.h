@@ -5,7 +5,8 @@
 
 #define TOTAL_MEMORY 1024
 #define REALTIME_MEMORY 64 // memória reservada para processos de tempo real (0–63)
-#define USER_MEMORY 960    // memória para processos de usuário (64–1023)
+#define USER_START REALTIME_MEMORY
+#define USER_MEMORY (TOTAL_MEMORY - REALTIME_MEMORY) // 960 blocos (64–1023)
 
 /*
  * Estrutura principal da memória:
@@ -21,10 +22,12 @@ typedef struct
 /* Inicializa toda a memória como livre */
 void init_memory(Memory *m);
 
-/* Aloca memória para processo de tempo real (retorna offset ou -1) */
+/* Alocação/liberação para processos de tempo real (0–63) */
 int allocate_realtime_memory(Memory *m, const Process *p);
-
-/* Libera memória ocupada por um processo de tempo real */
 void free_realtime_memory(Memory *m, const Process *p);
+
+/* Alocação/liberação para processos de usuário (64–1023) */
+int allocate_user_memory(Memory *m, const Process *p);
+void free_user_memory(Memory *m, const Process *p);
 
 #endif
