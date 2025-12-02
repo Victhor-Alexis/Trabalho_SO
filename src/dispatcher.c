@@ -3,6 +3,7 @@
 #include "../interfaces/queues.h"
 #include "../interfaces/memory.h"
 #include "../interfaces/process.h"
+#include "../interfaces/resource.h"
 
 void dispatch_process(const Process *p, int offset)
 {
@@ -25,6 +26,9 @@ void run_dispatcher(Queues *qs)
 {
     Memory mem;
     init_memory(&mem);
+
+    ResourceManager rm;
+    init_resources(&rm);
 
     int current_time = 0; // tempo global
     int finished_processes = 0;
@@ -106,6 +110,24 @@ void run_dispatcher(Queues *qs)
 
         /* Exibir dados do processo antes da execução */
         dispatch_process(p, p->mem_offset);
+
+        /* Tenta alocar recursos se houverem */
+        int r = allocate_resources(&rm, p);
+
+        if (r == 0)
+        {
+            printf("[RESOURCE] PID %d could NOT acquire resources (occupied by another process)\n", p->pid);
+        }
+        else if (r == 2)
+        {
+            // processo não usa recursos → não imprimir nada
+        }
+        else if (r == 1)
+        {
+            // sucesso → alocado ou já estava alocado
+            // não imprimir erro
+        }
+
         int quantum = get_quantum_for_priority(p->priority);
 
         if (p->cpu_time > quantum)
@@ -124,13 +146,15 @@ void run_dispatcher(Queues *qs)
             int new_index = p->priority - 1;
             enqueue(&qs->user_queues[new_index], p);
 
-            printf("[PREEMPT] PID %d did not finish. Priority %d -> %d, remaining=%d\n",
-                   p->pid, old, p->priority, p->cpu_time);
+            printf("[PREEMPT] PID %d did not finish. Priority %d -> %d, remaining=%d\n", p->pid, old, p->priority, p->cpu_time);
         }
         else
         {
             /* Executa apenas as instruções restantes e retorna SIGINT */
             simulate_process_slice(p, quantum);
+
+            /* Desaloca recursos usados */
+            free_resources(&rm, p);
 
             /* Processo terminou: liberar memória de usuário */
             free_user_memory(&mem, p);
