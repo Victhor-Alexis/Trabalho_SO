@@ -39,8 +39,10 @@ void run_dispatcher(Queues *qs)
 
         if (offset == -1)
         {
-            // mata esse processo porque nunca vair rodar
-            enqueue(&qs->real_time_queue, p);
+            printf("\n[ERROR-TR] PID %d nao pode ser alocado na memoria de tempo real. Processo descartado.\n", p->pid);
+
+            // Processo nunca poderá executar → evitar loop infinito
+            finished_processes++;
             continue;
         }
 
@@ -64,6 +66,17 @@ void run_dispatcher(Queues *qs)
             break;
 
         Process *p = dequeue(&qs->user_queues[q_index]);
+
+        /* DESCARTE IMEDIATO: processo grande demais */
+        if (p->memory_blocks > USER_MEMORY)
+        {
+            printf("\n[ERROR-USER] PID %d requere %d blocos, mas a memoria de usuario suporta no maximo %d.\n",
+                   p->pid, p->memory_blocks, USER_MEMORY);
+            printf("[ERROR-USER] Processo descartado. Nao pode ser executado.\n");
+
+            finished_processes++;
+            continue;
+        }
 
         if (!p->in_memory)
         {
